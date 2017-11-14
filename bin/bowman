@@ -33,7 +33,7 @@ process.on('unhandledRejection', (err) => {
     .join(' ')}`;
   console.error(`Failed to execute "${cmd}"`);
   console.error(err.toString());
-  if (argv.debug) {
+  if (argv.debug || DEV) {
     console.error(err);
   }
   // eslint-disable-next-line no-process-exit

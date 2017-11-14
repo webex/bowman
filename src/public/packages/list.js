@@ -15,7 +15,7 @@ const cwd = 'packages/node_modules';
  * included in the result
  * @returns {Promise<string>}
  */
-export default async function list({testable = false, updated = false}) {
+export default async function list({testable = false, updated = false} = {}) {
   let packages = await listAllPackages();
 
   if (updated) {
