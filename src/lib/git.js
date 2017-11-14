@@ -1,37 +1,32 @@
-import Git from 'nodegit';
-import kit from 'nodegit-kit';
+import {execSync} from 'child_process';
 
 const debug = require('debug')('bowman:lib:git');
-
-/**
- * Opens the current directory as a Git.Repository
- * @returns {Promise<Git.Repository>}
- */
-function openRepo() {
-  return Git.Repository.open(`${process.cwd()}/.git`);
-}
 
 /**
  * Diffs the current repo against ${tag}
  * @param {string} tag
  * @returns {Promise<Array<Object<string, string>>>}
  */
-export async function diff(tag) {
-  debug('opening repo');
-  const repo = await openRepo();
-  debug(`diffing HEAD against ${tag}`);
-  const d = await kit.diff(repo, 'HEAD', tag);
+export function diff(tag) {
+  debug(`Diffing HEAD against ${tag}`);
 
-  return d;
+  debug(`Shelling out to \`git diff --name-only HEAD..${tag}\``);
+  const raw = String(execSync(`git diff --name-only HEAD..${tag}`));
+  debug('Done');
+
+  return raw;
 }
 
 /**
  * Returns the last commit message
  * @returns {Promise<string>}
  */
-export async function lastLog() {
-  const repo = await openRepo();
-  const commit = await repo.getHeadCommit();
+export function lastLog() {
+  debug('Getting last log');
 
-  return commit.summary();
+  debug('Shelling out to `git log -n 1 --format=%B`');
+  const log = String(execSync('git log -n 1 --format=%B'));
+  debug('Done');
+
+  return log;
 }

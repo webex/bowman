@@ -77,7 +77,6 @@ async function removeUnchanged() {
   const tag = 'upstream/master';
 
   return _(await diff(tag))
-    .map((d) => d.path)
     .map(fileToPackage)
     .filter()
     .uniq()
