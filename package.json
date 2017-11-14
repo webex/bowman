@@ -5,7 +5,7 @@
   "bin": {},
   "repository": {
     "type": "git",
-    "url": "https://api.github.com/users/ianwremmel"
+    "url": "git@github.com:ianwremmel/bowman.git"
   },
   "scripts": {
     "commitmsg": "npm run --silent lint:commitmsg",
