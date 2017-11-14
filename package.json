@@ -2,7 +2,9 @@
   "name": "@ciscospark/bowman",
   "version": "0.0.0-development",
   "description": "Monorepo utilities",
-  "bin": {},
+  "bin": {
+    "bowman": "bin/bowman"
+  },
   "repository": {
     "type": "git",
     "url": "git@github.com:ianwremmel/bowman.git"
@@ -28,16 +30,31 @@
   "keywords": [],
   "author": "Ian W. Remmel <design@ianwremmel.com>",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "builtins": "^1.0.3",
+    "debug": "^3.1.0",
+    "denodeify": "^1.2.1",
+    "detective": "^4.5.0",
+    "glob": "^7.1.2",
+    "invariant": "^2.2.2",
+    "lodash": "^4.17.4",
+    "mz": "^2.7.0",
+    "nodegit": "^0.20.3",
+    "nodegit-kit": "^0.17.0",
+    "yargs": "^10.0.3"
+  },
   "devDependencies": {
     "@commitlint/cli": "^4.2.2",
     "@commitlint/config-angular": "^4.2.1",
+    "@ianwremmel/eslint-config-base": "^1.0.0",
+    "@ianwremmel/eslint-config-standard": "^1.1.0",
     "babel-eslint": "^8.0.1",
+    "babel-register": "^6.26.0",
     "chai": "^4.1.2",
     "condition-circle": "^1.5.0",
     "coveralls": "^3.0.0",
     "dependency-check": "^2.9.1",
-    "eslint": "^4.10.0",
+    "eslint": "^4.11.0",
     "eslint-plugin-import": "^2.8.0",
     "eslint-plugin-mocha": "^4.11.0",
     "husky": "^0.14.3",
