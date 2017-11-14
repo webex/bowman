@@ -1,0 +1,12 @@
+{
+  "plugins": [
+    "transform-export-extensions"
+  ],
+  "presets": [
+    ["env", {
+      "targets": {
+        "node": true
+      }
+    }]
+  ]
+}
