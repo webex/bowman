@@ -1,6 +1,8 @@
 import {execSync} from 'child_process';
 
-const debug = require('debug')('bowman:lib:git');
+import {makeDebug, v} from './debug';
+
+const debug = makeDebug(__filename);
 
 /**
  * Diffs the current repo against ${tag}
@@ -8,13 +10,13 @@ const debug = require('debug')('bowman:lib:git');
  * @returns {Promise<Array<Object<string, string>>>}
  */
 export function diff(tag) {
-  debug(`Diffing HEAD against ${tag}`);
+  debug(`Diffing HEAD against ${v(tag)}`);
 
-  debug(`Shelling out to \`git diff --name-only HEAD..${tag}\``);
+  debug(`Shelling out to \`git diff --name-only HEAD..${v(tag)}\``);
   const raw = String(execSync(`git diff --name-only HEAD..${tag}`));
   debug('Done');
 
-  return raw;
+  return raw.split('\n');
 }
 
 /**

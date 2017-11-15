@@ -13,6 +13,9 @@ export default function run(cmd) {
   process.chdir(path.resolve(__dirname, '..', 'fixtures'));
   const toExec = `${path.resolve(__dirname, '../../../bin/bowman')} ${cmd}`;
   debug(`running ${toExec}`);
-  return Promise.resolve(execSync(toExec)
-    .toString());
+  // pass {stdio: 'pipe'} to prevent error output from being printed in the test
+  // report.
+  return Promise.resolve(execSync(toExec, {stdio: 'pipe'})
+    .toString()
+    .trim());
 }

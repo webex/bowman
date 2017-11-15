@@ -4,166 +4,168 @@ import path from 'path';
 import builtins from 'builtins';
 import detective from 'detective';
 
-import {list as _list, read} from './packages';
+import {listAllPackages} from '../lib/packages';
+import {colorizeNumber, colorizePackageName, makeDebug} from '../lib/debug';
 
-const debug = require('debug')('bowman:public:dependencies');
 
-const tree = new Map();
-const visited = new Map();
+import {read} from './package';
 
+const debug = makeDebug(`${__filename}`);
+
+const directDependencies = new Map();
+const directDependents = new Map();
+const transitiveDependencies = new Map();
+const transitiveDependents = new Map();
 /**
- * Builds a tree of direct dependent packages
- * @returns {Map<string, Set>}
- */
-async function buildDirectDependentTree() {
-  const dependents = new Map();
-  for (const packageName of await _list({})) {
-    dependents.set(packageName, new Set());
-  }
-
-  for (const packageName of await _list({})) {
-    for (const dep of tree.get(packageName)) {
-      dependents.get(dep)
-        .add(packageName);
-    }
-  }
-
-  return dependents;
-}
-
-/**
- * Walks all packages to generate a tree of direct dependencies
- * @returns {Promise}
- */
-async function buildLocalDepTree() {
-  for (const packageName of await _list({})) {
-    tree.set(packageName, await list(packageName, {
-      includeTransitive: false,
-      localOnly: true
-    }));
-  }
-}
-
-/**
- * Lists the dependencies of a given package
+ * Determines all the entry points for the specified packaged. memoized.
  * @param {string} packageName
- * @param {Object} options
- * @param {boolean} [options.dependents=false}]
- * @param {boolean} [options.localOnly=false}]
- * @param {boolean} [options.includeTransitive=true}]
  * @returns {Promise<Array<string>>}
  */
-export default async function list(packageName, {
-  dependents = false, includeTransitive = true, localOnly = false
-}) {
-  if (dependents) {
-    // eslint-disable-next-line prefer-rest-params
-    return listDependents(...arguments);
-  }
-  const packages = await _list({});
+export async function listDirectDependencies(packageName) {
+  debug(`Checking if we've already walked the dependencies for ${colorizePackageName(packageName)}`);
+  let deps = directDependencies.get(packageName);
+  if (!deps) {
+    debug(`Did not find cached dependencies for ${colorizePackageName(packageName)}`);
+    const entrypoints = await listEntryPoints(packageName);
+    deps = findDeps(entrypoints);
 
-  const pkg = await read(packageName);
-  const entrypoints = await listEntryPoints(pkg);
-
-  let deps = findDeps(entrypoints);
-  const localDeps = Array.from(deps)
-    .filter((d) => packages.includes(d));
-
-  if (includeTransitive) {
-    for (const dep of localDeps) {
-      deps = new Set([
-        ...deps,
-        ...findDeps(listEntryPoints(await read(dep)))
-      ]);
-    }
+    directDependencies.set(packageName, deps);
   }
 
-  if (localOnly) {
-    return Array
-      .from(deps)
-      .filter((d) => packages.includes(d))
-      .sort();
-  }
-
+  debug(`Returning ${colorizeNumber(deps.size)} direct dependencies for ${colorizePackageName(packageName)}`);
   return Array.from(deps)
     .sort();
 }
 
 /**
- * Returns all the packages that depend on packageName and (optionall), the
- * packages that depend on them
+ * List all the packages that directly depend on packageName
  * @param {string} packageName
- * @param {Object} options
- * @param {boolean} options.includeTransitive
- * @returns {Promise<Set>}
+ * @returns {Promise<Array<string>>}
  */
-async function listDependents(packageName, {includeTransitive}) {
-  await buildLocalDepTree();
-
-  const dependents = await buildDirectDependentTree();
-
-  if (includeTransitive) {
-    const deps = dependents.get(packageName);
-    if (!deps) {
-      return new Set();
-    }
-    let changed = true;
-    while (changed) {
-      changed = false;
-      for (const dep of deps) {
-        const next = dependents.get(dep);
-        for (const nDep of next) {
-          changed = changed || !deps.has(nDep);
-          deps.add(nDep);
-        }
+export async function listDirectDependents(packageName) {
+  debug(`Checking if we've already found direct dependents for ${colorizePackageName(packageName)}`);
+  let directDeps = directDependents.get(packageName);
+  if (directDeps) {
+    debug(`Found ${colorizeNumber(directDeps.size)} cached direct dependents for ${colorizePackageName(packageName)}`);
+  }
+  else {
+    debug(`Searching for direct dependents for ${colorizePackageName(packageName)}`);
+    const packages = await listAllPackages();
+    directDeps = new Set();
+    for (const possibleDep of packages) {
+      if ((await listDirectDependencies(possibleDep)).includes(packageName)) {
+        directDeps.add(possibleDep);
       }
     }
-
-    return deps;
+    directDependents.set(packageName, directDeps);
+    debug(`Found ${colorizeNumber(directDeps.size)} direct dependents for ${colorizePackageName(packageName)}`);
   }
-
-  return dependents.get(packageName);
+  debug(`Returning ${colorizeNumber(directDeps.size)} direct dependents for ${colorizePackageName(packageName)}`);
+  return directDeps;
 }
 
 /**
- * Finds all the entrypoints for the specified package
- * @param {Object} pkg
- * @returns {Array<string>}
+ * Finds direct and transitive dependencies for the specified packages.
+ * @param {string} packageName
+ * @returns {Promise<Array<string>>}
  */
-function listEntryPoints(pkg) {
-  debug(`listing entrypoints for ${pkg.name}`);
-  if (!pkg.name) {
-    throw new Error('cannot read dependencies for unnamed package');
-  }
-  let paths = [];
-
-  if (pkg.main) {
-    debug(`found main path for ${pkg.name}`);
-    paths.push(pkg.main);
-  }
-
-  if (pkg.bin) {
-    debug(`found bin entry(s) for ${pkg.name}`);
-    paths = Object.values(pkg.bin)
-      .concat(paths);
-  }
-
-  if (pkg.browser) {
-    debug(`found browser entry(s) for ${pkg.name}`);
-    paths = Object.values(pkg.browser)
-      .filter((p) => p && !p.startsWith('@'))
-      .concat(paths);
-  }
-
-  debug(paths);
-
-  return paths
-    .map((p) => path.resolve('packages', 'node_modules', pkg.name, p));
+export async function listTransitiveDependencies(packageName) {
+  return Array.from(await findTransitiveDependencies(packageName))
+    .sort();
 }
 
 /**
- * Finds all the dependencies for a given set of entrypoints
- * @param {Set<string>} entrypoints
+ * Finds direct and transitive dependencies for the specified packages.
+ * @param {string} packageName
+ * @private
+ * @returns {Promise<Set<string>>}
+ */
+async function findTransitiveDependencies(packageName) {
+  debug(`Checking for cached transitive dependencies for ${colorizePackageName(packageName)}`);
+  let transitiveDeps = transitiveDependencies.get(packageName);
+  if (transitiveDeps) {
+    debug(`Found for cached transitive dependencies for ${colorizePackageName(packageName)}`);
+  }
+  else {
+    debug(`Finding transitive dependencies for ${colorizePackageName(packageName)}`);
+
+    const packages = await listAllPackages();
+    const directDeps = await listDirectDependencies(packageName);
+    transitiveDeps = new Set();
+    for (const dep of directDeps) {
+      if (packages.includes(dep)) {
+        debug(`${dep} is a `);
+        const newDeps = await findTransitiveDependencies(dep);
+        transitiveDeps = new Set([
+          ...transitiveDeps,
+          ...newDeps
+        ]);
+      }
+    }
+    transitiveDeps = new Set([
+      ...transitiveDeps,
+      ...directDeps
+    ]);
+    transitiveDependencies.set(packageName, transitiveDeps);
+    debug(`Found ${colorizeNumber(transitiveDeps.size)} transitive dependencies for ${colorizePackageName(packageName)}`);
+  }
+
+  debug(`Returning ${colorizeNumber(transitiveDeps.size)} transitive dependencies for ${colorizePackageName(packageName)}`);
+
+  return transitiveDeps;
+}
+
+
+/**
+ * Finds direct and transitive dependents for the specified package
+ * @param {string} packageName
+ * @returns {Promise<Array<string>>}
+ */
+export async function listTransitiveDependents(packageName) {
+  return Array.from(await findTransitiveDependents(packageName))
+    .sort();
+}
+
+/**
+ * Finds direct and transitive dependents for the specified package
+ * @param {string} packageName
+ * @returns {Promise<Array<string>>}
+ */
+async function findTransitiveDependents(packageName) {
+  debug(`Checking if we've already found transitive dependents for ${colorizePackageName(packageName)}`);
+  let transitiveDeps = transitiveDependents.get(packageName);
+  if (transitiveDeps) {
+    debug(`Found ${colorizeNumber(transitiveDeps.size)} cached transitive dependents for ${colorizePackageName(packageName)}`);
+  }
+  else {
+    debug(`Searching for transitive dependents for ${colorizePackageName(packageName)}`);
+    const packages = await listAllPackages();
+    const directDeps = await listDirectDependents(packageName);
+
+    transitiveDeps = new Set();
+    for (const dep of directDeps) {
+      if (packages.includes(dep)) {
+        transitiveDeps = new Set([
+          ...transitiveDeps,
+          ...await findTransitiveDependents(dep)
+        ]);
+      }
+    }
+    transitiveDeps = new Set([
+      ...transitiveDeps,
+      ...directDeps
+    ]);
+    transitiveDependents.set(packageName, transitiveDeps);
+    debug(`Found ${colorizeNumber(transitiveDeps.size)} transitive dependents for ${colorizePackageName(packageName)}`);
+  }
+  debug(`Returning ${colorizeNumber(transitiveDeps.size)} transitive dependents for ${colorizePackageName(packageName)}`);
+  return transitiveDeps;
+}
+
+
+/**
+ * Combines the dependencies found at each entrypoint
+ * @param {Array<string>} entrypoints
  * @returns {Set<string>}
  */
 function findDeps(entrypoints) {
@@ -178,35 +180,23 @@ function findDeps(entrypoints) {
   return deps;
 }
 
-/**
- * Translates a required filename into a package name
- * @param {strig} filename
- * @returns {string}
- */
-function requireToPackage(filename) {
-  const packageName = filename.split('/');
-  if (packageName[0].startsWith('@')) {
-    return packageName.slice(0, 2)
-      .join('/');
-  }
-
-  return packageName[0];
-}
+const visited = new Map();
 
 /**
- * Finds all dependencies of entrypoint
+ * Finds the (sub)tree of dependencies beginging at ${entrypoing}
  * @param {string} entrypoint
- * @returns {Array<string>}
+ * @private
+ * @returns {Set<string>}
  */
 function walk(entrypoint) {
   try {
     if (!visited.has(entrypoint)) {
-      debug(`finding requires for ${entrypoint}`);
+      debug(`Finding requires for ${entrypoint}`);
       // This whole thing is *way* easier if we do it synchronously
       // eslint-disable-next-line no-sync
       const requires = detective(fs.readFileSync(entrypoint));
       visited.set(entrypoint, requires.reduce((acc, dep) => {
-        debug(`found ${dep}`);
+        debug(`Found ${dep} for ${entrypoint}`);
         if (dep.startsWith('.')) {
           debug(`${dep} is relative, descending`);
           const next = walk(path.resolve(path.dirname(entrypoint), dep));
@@ -217,7 +207,7 @@ function walk(entrypoint) {
           ]);
         }
         else if (!builtins.includes(dep)) {
-          debug(`found dependency ${dep}`);
+          debug(`Found dependency ${dep}`);
           acc.add(requireToPackage(dep));
         }
 
@@ -225,6 +215,7 @@ function walk(entrypoint) {
       }, new Set()));
     }
 
+    debug(`Returning requires for ${entrypoint}`);
     return visited.get(entrypoint);
   }
   catch (err) {
@@ -237,3 +228,64 @@ function walk(entrypoint) {
     throw err;
   }
 }
+
+/**
+ * Translates a required filename into a package name
+ * @param {string} filename
+ * @private
+ * @returns {string}
+ */
+function requireToPackage(filename) {
+  const packageName = filename.split('/');
+  if (packageName[0].startsWith('@')) {
+    return packageName.slice(0, 2)
+      .join('/');
+  }
+
+  return packageName[0];
+}
+
+
+export const a = 5;
+
+/**
+ * Finds all the entrypoints for the specified package
+ * @param {string|Object} pkg
+ * @private
+ * @returns {Promise<Array<string>>}
+ */
+async function listEntryPoints(pkg) {
+  if (typeof pkg === 'string') {
+    pkg = await read(pkg);
+  }
+
+  debug(`listing entrypoints for ${pkg.name}`);
+  if (!pkg.name) {
+    throw new Error('cannot read dependencies for unnamed package');
+  }
+  let paths = [];
+
+  if (pkg.main) {
+    debug(`Found main path for ${pkg.name}`);
+    paths.push(pkg.main);
+  }
+
+  if (pkg.bin) {
+    debug(`Found bin entry(s) for ${pkg.name}`);
+    paths = Object.values(pkg.bin)
+      .concat(paths);
+  }
+
+  if (pkg.browser) {
+    debug(`Found browser entry(s) for ${pkg.name}`);
+    paths = Object.values(pkg.browser)
+      .filter((p) => p && !p.startsWith('@'))
+      .concat(paths);
+  }
+
+  debug(paths);
+
+  return paths
+    .map((p) => path.resolve('packages', 'node_modules', pkg.name, p));
+}
+

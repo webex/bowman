@@ -1,4 +1,4 @@
-import {list} from '../public/packages';
+import {listPackages} from '../public/packages';
 
 /**
  * yargs builder
@@ -7,16 +7,21 @@ import {list} from '../public/packages';
  */
 export function builder(yargs) {
   return yargs
-    .implies('changedonly', 'testable')
+    .implies('include-transitive', 'changed')
     .options({
-      changedonly: {
+      changed: {
         default: false,
-        description: 'List only the changed, testable packages',
+        description: 'Only list packages that have changed from master',
+        type: 'boolean'
+      },
+      'include-transitive': {
+        default: false,
+        description: 'Consider transitive dependents as changed',
         type: 'boolean'
       },
       testable: {
         default: false,
-        description: 'List packages that should be tested in CI',
+        description: 'Only list packages that are testable',
         type: 'boolean'
       }
     })
@@ -30,7 +35,7 @@ export const desc = 'List packages';
  * @returns {Promise}
  */
 export async function handler(argv) {
-  const packages = await list(argv);
+  const packages = await listPackages(argv);
 
   for (const pkg of packages) {
     console.info(pkg);

@@ -2,7 +2,7 @@ import path from 'path';
 
 import {readFile, writeFile} from 'mz/fs';
 
-import {spawn} from '../../lib';
+import {spawn} from '../lib';
 
 const cwd = 'packages/node_modules';
 
@@ -28,8 +28,6 @@ export async function getMain(packageName) {
 
   return pkg.main;
 }
-
-export {default as list} from './list';
 
 /**
  * Loads a package.json as a JavaScript object

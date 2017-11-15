@@ -32,7 +32,7 @@
     "precommit": "npm run --silent lint:staged",
     "prepublish": "npm run --silent build",
     "test": "npm run --silent test:unit && npm run --silent test:integration",
-    "test:integration": "nyc --reporter=text mocha -r babel-register $(npm run --silent mocha-reporter-options) './test/integration/spec/**/*.js'",
+    "test:integration": "nyc --reporter=text mocha --timeout 10000 -r babel-register $(npm run --silent mocha-reporter-options) './test/integration/spec/**/*.js'",
     "test:unit": "nyc --reporter=text mocha -r babel-register $(npm run --silent mocha-reporter-options) './src/**/*-spec.js'",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
@@ -42,6 +42,7 @@
   "license": "MIT",
   "dependencies": {
     "builtins": "^1.0.3",
+    "chalk": "^2.3.0",
     "debug": "^3.1.0",
     "denodeify": "^1.2.1",
     "detective": "^4.5.0",
@@ -50,6 +51,7 @@
     "lodash": "^4.17.4",
     "mz": "^2.7.0",
     "rimraf": "^2.6.2",
+    "supports-color": "^5.0.0",
     "yargs": "^10.0.3"
   },
   "devDependencies": {
