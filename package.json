@@ -31,9 +31,7 @@
     "mocha-reporter-options": "[ -n \"${CI}\" ] && echo '--reporter xunit --reporter-options output=reports/junit/test.xml'",
     "precommit": "npm run --silent lint:staged",
     "prepublish": "npm run --silent build",
-    "test": "npm run --silent test:unit && npm run --silent test:integration",
-    "test:integration": "nyc --reporter=text mocha --timeout 10000 -r babel-register $(npm run --silent mocha-reporter-options) './test/integration/spec/**/*.js'",
-    "test:unit": "nyc --reporter=text mocha -r babel-register $(npm run --silent mocha-reporter-options) './src/**/*-spec.js'",
+    "test": "nyc --reporter=text mocha --timeout 10000 -r babel-register $(npm run --silent mocha-reporter-options) './src/**/*-spec.js' './test/integration/spec/**/*.js'",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "engines": {},

@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
+const path = require('path');
+
 // TODO move exit code definitions to a separate file
 const E_UNHANDLED_REJECTION = 64;
 
-// FIXME: NODE_ENV isn't going to be set in "production" enviroments
 const DEV = process.env.NODE_ENV === 'development';
 
 if (DEV) {
@@ -12,6 +13,18 @@ if (DEV) {
   /* eslint-disable import/no-extraneous-dependencies */
   require('babel-register');
 }
+
+/**
+ * Loads the right file depending on environment
+ * @private
+ * @param {string} packageName
+ * @returns {module}
+ */
+function requireHelper(packageName) {
+  return path.resolve(__dirname, DEV ? '../src' : '../cjs', packageName);
+}
+
+const {parseGitCommands} = require(requireHelper('lib/git'));
 
 // eslint-disable-next-line no-unused-expressions
 const {argv} = require('yargs')
@@ -23,7 +36,8 @@ const {argv} = require('yargs')
     }
   })
   .env('')
-  .commandDir(DEV ? '../src/commands' : '../cjs/commands')
+  .config(parseGitCommands())
+  .commandDir(requireHelper('commands'))
   .demandCommand(1)
   .help();
 
@@ -32,7 +46,7 @@ process.on('unhandledRejection', (err) => {
     .join(' ')}`;
   console.error(`Failed to execute "${cmd}"`);
   console.error(err.toString());
-  if (argv.debug || DEV) {
+  if (argv && argv.debug || DEV) {
     console.error(err);
   }
   // eslint-disable-next-line no-process-exit
