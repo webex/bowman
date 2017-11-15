@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import {listAllPackages, listChangedPackages, listTestablePackages} from '../lib/packages';
+import {listAllPackages, listChangedPackages, listTestablePackages as listTestable} from '../lib/packages';
 import {colorizeNumber, colorizePackageName, makeDebug} from '../lib/debug';
 
 import {listDirectDependencies, listTransitiveDependencies, listDirectDependents, listTransitiveDependents} from './dependencies';
@@ -47,42 +47,46 @@ export function listDependents(packageName, {includeTransitive = false} = {}) {
 }
 
 /**
+ * List all (or only changed) packages
+ * @param {Object} options
+ * @param {boolean} options.changed - if true, only list changed packages
+ * @returns {Promise<Array<string>>}
+ */
+export function listPackages({changed = false} = {}) {
+  return changed ? listChangedPackages() : listAllPackages();
+}
+
+/**
  * Lists all packages
  * @param {Object} options
  * @param {boolean} options.testable when true, only packages with tests will be
  * included in the result
  * @returns {Promise<string>}
  */
-export async function listPackages({
-  changed = false, includeTransitive = true, ignoreTooling = false, testable = false
-} = {}) {
+export async function listTestablePackages({changed = false, ignoreTooling = false} = {}) {
   let packages;
 
   if (changed) {
     debug('Starting from all packages');
     packages = await listChangedPackages();
   }
-  else {
-    debug('Starting from changed packages');
+
+  const toolingChanged = !!(packages && packages.includes('tooling'));
+  const testAllBecauseTooling = toolingChanged && !ignoreTooling;
+
+  if (testAllBecauseTooling) {
+    debug('Found a tooling change, switching to all packages');
     packages = await listAllPackages();
   }
 
-  if (ignoreTooling) {
-    debug('Removing "tooling" from package list');
-    packages = packages.filter((p) => p !== 'tooling');
+  if (!packages) {
+    packages = await listAllPackages();
   }
 
-  if (testable) {
-    if (packages.includes('tooling')) {
-      debug('Found tooling to have changed, resetting to all packages');
-      packages = await listAllPackages();
-    }
+  debug('Removing packages that do not have tests');
+  packages = await removeUntestablePackages(packages);
 
-    debug('Removing packages that do not have tests');
-    packages = await removeUntestablePackages(packages);
-  }
-
-  if (changed && includeTransitive && !packages.includes('tooling')) {
+  if (!testAllBecauseTooling) {
     debug('Expanding changed packages to include dependents');
     packages = await expandToDependents(packages);
   }
@@ -98,12 +102,17 @@ export async function listPackages({
  * @returns {Promise<Array<string>>}
  */
 async function expandToDependents(packages) {
-  let allPackages = [];
+  let allPackages = [].concat(packages);
+
   for (const packageName of packages) {
     allPackages = allPackages.concat(await listDependents(packageName, {includeTransitive: true}));
   }
-  return allPackages;
 
+  return _(allPackages)
+    .sort()
+    .filter()
+    .uniq()
+    .value();
 }
 
 /**
@@ -112,6 +121,6 @@ async function expandToDependents(packages) {
  * @returns {Promise<Array<string>>}
  */
 async function removeUntestablePackages(packages) {
-  const testable = await listTestablePackages();
+  const testable = await listTestable();
   return _.intersection(testable, packages);
 }

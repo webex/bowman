@@ -54,7 +54,12 @@ describe('deps', () => {
       assert.match(result, /Implications failed/);
       assert.match(result, /dependents -> localOnly/);
 
-      result = await run('deps list @example/scoped-package-the-first --dependents --local-only');
+      try {
+        result = await run('deps list @example/scoped-package-the-first --dependents --local-only');
+      }
+      catch (err) {
+        result = err.output[2].toString();
+      }
 
       assert.notMatch(result, /Implications failed/);
     });

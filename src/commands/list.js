@@ -7,21 +7,10 @@ import {listPackages} from '../public/packages';
  */
 export function builder(yargs) {
   return yargs
-    .implies('include-transitive', 'changed')
     .options({
       changed: {
         default: false,
         description: 'Only list packages that have changed from master',
-        type: 'boolean'
-      },
-      'include-transitive': {
-        default: false,
-        description: 'Consider transitive dependents as changed',
-        type: 'boolean'
-      },
-      testable: {
-        default: false,
-        description: 'Only list packages that are testable',
         type: 'boolean'
       }
     })
@@ -29,6 +18,7 @@ export function builder(yargs) {
 }
 export const command = 'list';
 export const desc = 'List packages';
+
 /**
  * yargs handler
  * @param {*} argv
