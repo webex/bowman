@@ -4,7 +4,7 @@ export const builder = {};
 export const command = 'exec cmd [args...]';
 export const desc = 'Run a command in each package directory';
 /**
- * yargs hanlder
+ * yargs handler
  * @param {*} argv
  * @returns {Promise}
  */

@@ -4,7 +4,7 @@ export const builder = {};
 export const command = 'updated';
 export const desc = 'List updated packages';
 /**
- * yargs hanlder
+ * yargs handler
  * @param {*} argv
  * @returns {Promise}
  */

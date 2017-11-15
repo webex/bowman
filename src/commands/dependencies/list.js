@@ -20,7 +20,7 @@ export const builder = {
 export const command = 'list packageName';
 export const desc = 'Do things with dependencies';
 /**
- * yargs hanlder
+ * yargs handler
  * @param {*} argv
  * @returns {Promise}
  */

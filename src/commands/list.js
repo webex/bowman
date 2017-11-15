@@ -25,7 +25,7 @@ export function builder(yargs) {
 export const command = 'list';
 export const desc = 'List packages';
 /**
- * yargs hanlder
+ * yargs handler
  * @param {*} argv
  * @returns {Promise}
  */
