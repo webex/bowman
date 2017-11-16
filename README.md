@@ -42,22 +42,35 @@ npm install @ciscospark/bowman
     bowman check publishable
     # => yes/no
     ```
+
 1. Add dependencies to packages
     ```bash
     bowman deps generate
     ```
+
 1. Get latest published versions from npm and set all packages to them
     ```bash
     bowman version set --latest
     ```
+
 1. Determine next version
     ```bash
     export NEXT_VERSION=$(bowman version next)
     ```
+
 1. Set next version
     ```bash
     bowman version set ${NEXT_VERSION}
     ```
+1. Publish
+
+    We felt that actually putting a publish command into this repository might make this a little too easy. Instead, we've got a handy script to publish all your packages. You'll get a bunch of 404s for packages that don't have new version numbers.
+
+    ```bash
+    bowman exec -- bash -c 'npm publish --access public || true'
+    ```
+
+    > Keep an eye on #8 for the planned addition of a `--publishable` switch.
 
 `bowman version next` and `bowman version set <version></version>` are explicitly different steps because you're probably going to need to do other things with `VERSION_NEXT` and by forcing this to be explicit, we avoid several potentially costly callouts to npm.
 
