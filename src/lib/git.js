@@ -92,6 +92,9 @@ export function parseCommitForCommands(log) {
  * @returns {LegacyGitCommitCommands}
  */
 export function parseCommitsForCommands(logs) {
+  if (!logs.length) {
+    return {};
+  }
   const commands = parseCommitForCommands(logs[0]);
   if (!commands.noPush) {
     for (let i = 1; i < logs.length && !commands.noPush; i++) {
