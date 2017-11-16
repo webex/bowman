@@ -68,6 +68,21 @@ export function parseCommitForLegacyCommands(log) {
     commands.noPush = true;
   }
 
+  const re = /^#release v(.+?)(\s.+)?$/;
+  const match = log.match(re);
+  if (match) {
+
+    const [
+      // placeholder
+      // eslint-disable-next-line no-unused-vars
+      $,
+      version
+    ] = match;
+    if (version) {
+      commands.explicitReleaseVersion = version;
+    }
+  }
+
   return commands;
 }
 
