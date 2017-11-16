@@ -1,14 +1,16 @@
 import fs from 'fs';
 import path from 'path';
 
+import _ from 'lodash';
 import builtins from 'builtins';
 import detective from 'detective';
+import {readFile} from 'mz/fs';
 
 import {listAllPackages} from '../lib/packages';
-import {colorizeNumber, colorizePackageName, makeDebug} from '../lib/debug';
+import {colorizeNumber, colorizePackageName, makeDebug, v} from '../lib/debug';
 
 
-import {read} from './package';
+import {read, write} from './package';
 
 const debug = makeDebug(`${__filename}`);
 
@@ -16,6 +18,67 @@ const directDependencies = new Map();
 const directDependents = new Map();
 const transitiveDependencies = new Map();
 const transitiveDependents = new Map();
+
+/**
+ * Copies relevant dependencies from top-level package.json into each
+ * subpackage's package.json
+ * @returns {Promise}
+ */
+export async function generate() {
+  const packages = await listAllPackages();
+
+  for (const packageName of packages) {
+    const pkg = await read(packageName);
+    pkg.dependencies = await generateVersionedDeps(packageName);
+    await write(packageName, pkg);
+  }
+}
+
+/**
+ * Generates versioned dependencies for the specified packages
+ * @param {string} packageName
+ * @returns {Object}
+ */
+async function generateVersionedDeps(packageName) {
+  debug('Loading main package.json');
+  const rootPkg = JSON.parse(await readFile('./package.json'));
+  debug('Loaded main package.json');
+
+  debug(`Reading all dependency names for ${colorizePackageName(packageName)}`);
+  const deps = await listDirectDependencies(packageName);
+  debug(`Read ${colorizeNumber(deps.length)} dependency names for ${colorizePackageName(packageName)}`);
+
+  return deps.reduce((acc, dep) => {
+    if (builtins.includes(dep)) {
+      return acc;
+    }
+
+    debug(`Checking main package.json for ${v(dep)}`);
+    acc[dep] = _.get(rootPkg, `dependencies.${dep}`);
+    if (acc[dep]) {
+      debug(`Found ${dep} in main package.json`);
+    }
+    else {
+      debug(`Did not find ${v(dep)} in main package.json`);
+
+      try {
+        debug(`Checking if ${v(dep)} is a local package`);
+        // This function needs to be synchronous since it's a reducer, so we
+        // can't use `await read()`
+        debug(`Requiring ${v(`packages/node_modules/${dep}/package.json`)} from the current directory`);
+        acc[dep] = require(path.resolve(process.cwd(), `packages/node_modules/${dep}/package.json`)).version;
+        debug(`Found ${v(dep)} locally`);
+      }
+      catch (err) {
+        console.warn(err);
+        throw new Error(`Failed to determine version for ${v(dep)}. Is it missing from package.json?`);
+      }
+    }
+
+    return acc;
+  }, {});
+}
+
 /**
  * Determines all the entry points for the specified packaged. memoized.
  * @param {string} packageName
