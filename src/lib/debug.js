@@ -8,7 +8,10 @@ import debug from 'debug';
  */
 export function makeDebug(filename) {
   return debug(`bowman${filename
-    .split('bowman/src')[1]
+    .split('bowman')[1]
+    .replace(/^cjs/, '')
+    .replace(/^es/, '')
+    .replace(/^src/, '')
     .replace(/\//g, ':')
     .replace(/.js$/, '')}`);
 
