@@ -1,4 +1,4 @@
-import {listTestablePackages} from '../../public/packages';
+import {testable} from '../../public/check';
 
 /**
  * yargs builder
@@ -36,16 +36,11 @@ export const desc = 'Check tests should be run or skipped';
  * @returns {Promise}
  */
 export async function handler(argv) {
-  if (argv.ciSkip) {
-    console.log('skip');
-    return;
-  }
-  const packages = await listTestablePackages(argv);
-
-  if (packages.length) {
-    console.log('run');
+  const isTestable = await testable(argv);
+  if (argv.exitStatus) {
+    process.exit(isTestable ? 0 : 1);
   }
   else {
-    console.log('skip');
+    console.log(isTestable ? 'run' : 'skip');
   }
 }
