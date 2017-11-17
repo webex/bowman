@@ -21,6 +21,26 @@ npm install @ciscospark/bowman
 
 ## Usage
 
+### Transformations
+
+#### Package Transformations
+
+> Local Dir: .bowman/mods/pkg
+
+Inspired by the things that jscodeshift lets to do with codemods, Bowman provides an interface for create transforms to keep all of your package.jsons consistent.
+
+Each transform is of the form
+
+```js
+/**
+ * @param {Object} pkg - The loaded package to transform
+ * @returns {Promise|undefined}
+ */
+module.exports = async function tx(pkg) {
+  // make changes to pkg here
+}
+```
+
 ### Running your tests
 
 1. (optional) Check if you have tests to run
