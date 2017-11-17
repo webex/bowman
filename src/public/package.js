@@ -54,11 +54,15 @@ export async function setMain(packageName, main) {
 
 /**
  * Saves an object to a package.json
- * @param {string} packageName
+ * @param {string} [packageName]
  * @param {Object} pkg
  * @returns {Promise}
  */
 export async function write(packageName, pkg) {
+  if (!pkg && typeof packageName === 'object') {
+    pkg = packageName;
+    packageName = pkg.name;
+  }
   const packagePath = path.join(cwd, packageName, 'package.json');
   await writeFile(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
 }
