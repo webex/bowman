@@ -3,3 +3,15 @@ env:
   node: true
 extends:
   - "@ianwremmel/eslint-config-standard"
+parser: babel-eslint
+rules:
+  valid-jsdoc:
+    - error
+    -
+        matchDescription: '.+'
+        requireReturn: true
+        requireReturnType: true
+        requireParamDescription: false
+        requireReturnDescription: false
+  sort-imports: off
+  no-warning-comments: warn

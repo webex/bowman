@@ -21,6 +21,79 @@ npm install @ciscospark/bowman
 
 ## Usage
 
+### Transformations
+
+#### Package Transformations
+
+> Local Dir: .bowman/mods/pkg
+
+Inspired by the things that jscodeshift lets to do with codemods, Bowman provides an interface for create transforms to keep all of your package.jsons consistent.
+
+Each transform is of the form
+
+```js
+/**
+ * @param {Object} pkg - The loaded package to transform
+ * @returns {Promise|undefined}
+ */
+module.exports = async function tx(pkg) {
+  // make changes to pkg here
+}
+```
+
+### Running your tests
+
+1. (optional) Check if you have tests to run
+    ```bash
+    bowman check testable --changed
+    # => run/skip
+    ```
+
+1. List packages that need to be tested
+    ```bash
+    bowman list testable --changed
+    ```
+    > You can additionally passed the `--ignore-tooling` switch to only make the testing determination based on package changes.
+
+### Publishing
+
+1. Check anything publishable changed
+    ```bash
+    bowman check publishable
+    # => yes/no
+    ```
+
+1. Add dependencies to packages
+    ```bash
+    bowman deps generate
+    ```
+
+1. Get latest published versions from npm and set all packages to them
+    ```bash
+    bowman version set --latest
+    ```
+
+1. Determine next version
+    ```bash
+    export NEXT_VERSION=$(bowman version next)
+    ```
+
+1. Set next version
+    ```bash
+    bowman version set ${NEXT_VERSION}
+    ```
+1. Publish
+
+    We felt that actually putting a publish command into this repository might make this a little too easy. Instead, we've got a handy script to publish all your packages. You'll get a bunch of 404s for packages that don't have new version numbers.
+
+    ```bash
+    bowman exec -- bash -c 'npm publish --access public || true'
+    ```
+
+    > Keep an eye on #8 for the planned addition of a `--publishable` switch.
+
+`bowman version next` and `bowman version set <version></version>` are explicitly different steps because you're probably going to need to do other things with `VERSION_NEXT` and by forcing this to be explicit, we avoid several potentially costly callouts to npm.
+
 ## Maintainers
 
 [Ian Remmel](https://github.com/ianwremmel)
