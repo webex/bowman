@@ -30,7 +30,7 @@
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {
-    "@commitlint/cli": "^4.2.2",
+    "@commitlint/cli": "^5.0.0",
     "@commitlint/config-angular": "^4.2.1",
     "babel-eslint": "^8.0.1",
     "chai": "^4.1.2",
