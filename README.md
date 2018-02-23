@@ -23,8 +23,6 @@ npm install @ciscospark/bowman
 
 ## Maintainers
 
-[Ian Remmel](https://github.com/ianwremmel)
-
 ## Contribute
 
 See [CONTRIBUTE](CONTRIBUTE.md)
